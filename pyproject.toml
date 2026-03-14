@@ -12,3 +12,6 @@ dependencies = [
 
 [project.scripts]
 gwscan2 = "gwscan2.cli:app"
+
+[tool.uv]
+package = true
