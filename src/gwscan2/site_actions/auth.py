@@ -1,5 +1,4 @@
 import asyncio
-import os
 from typing import TYPE_CHECKING, Literal
 
 from gwscan2.settings import load_credentials
