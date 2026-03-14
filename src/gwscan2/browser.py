@@ -1,6 +1,6 @@
 import zendriver as zd
 
-from settings import PROFILE_DIR
+from gwscan2.settings import PROFILE_DIR
 
 
 async def start_browser() -> zd.Browser:

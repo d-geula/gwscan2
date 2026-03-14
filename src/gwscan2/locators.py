@@ -1,4 +1,4 @@
-class LoginSelectors:
+class LoginLocators:
     LOGIN_MODAL = 'button[data-target="#myModal"]'
     PIN_CAPTCHA = "label[for=PIN] > img"
     PIN = "input#PIN"
@@ -9,14 +9,14 @@ class LoginSelectors:
     COMMAND_CENTER_HEADING = 'main[class="mine"] > h3'
 
 
-class BattlefieldSelectors:
+class BattlefieldLocators:
     PLAYER_ROWS = "tr.hidden-xs-down"
     NAME_CELL = "td#name_titles"
     PLAYER_LINK = 'td#name_titles a[href^="stats.php?id="]'
     POP_CELL = "td#pop"
 
 
-class ProfileSelectors:
+class ProfileLocators:
     INFO = "#info"
     INFO_ROWS = "#info tbody tr"
     INFO_CELLS = "td"
@@ -24,7 +24,7 @@ class ProfileSelectors:
     PLANET_ROWS = "#planets tbody tr"
 
 
-class SpySelectors:
+class SpyLocators:
     SPY_BUTTON = 'input[name="submit"][value="Spy"]'
     NUM_SPIES = 'input[name="numspies"]'
     GO_BUTTON = 'button.btn.btn-outline-secondary[type="submit"]'

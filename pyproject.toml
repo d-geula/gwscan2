@@ -11,4 +11,4 @@ dependencies = [
 ]
 
 [project.scripts]
-gwscan2 = "src.cli:app"
+gwscan2 = "gwscan2.cli:app"

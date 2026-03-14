@@ -7,8 +7,8 @@ BATTLEFIELD_URL = BASE_URL + "/battlefield.php?page="
 PROFILE_STATS_URL = BASE_URL + "/stats.php?id="
 REFERER = COMMAND_CENTER_URL + "?game=gatewars"
 
-DB_PATH = Path.cwd().parent / "players.sqlite3"
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
-PROFILE_DIR = Path.cwd().parent / "profile"
+DB_PATH = PROJECT_ROOT / "players.sqlite3"
 
-
+PROFILE_DIR = PROJECT_ROOT / "profile"
