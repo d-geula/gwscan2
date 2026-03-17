@@ -5,23 +5,20 @@ import typer
 
 from gwscan2.parsing import parse_page_range
 from gwscan2.workflows.battlefield_flow import run_test_battlefield_scan
-from gwscan2.workflows.test_auth import run_test_auth_flow
+
 
 app = typer.Typer(help="GateWa.rs scanning tools")
+scan_app = typer.Typer(help="Scan commands")
+app.add_typer(scan_app, name="scan")
 
 
-@app.callback()
-def main() -> None:
-    """CLI entrypoint for GateWa.rs tools."""
+# @app.callback()
+# def main() -> None:
+#     """CLI entrypoint for GateWa.rs tools."""
 
 
-@app.command("test-auth")
-def test_auth_flow_command() -> None:
-    asyncio.run(run_test_auth_flow())
-
-
-
-@app.command("test-battlefield")
+#TODO: implement flag for headless/headed mode
+@scan_app.command("battlefield")
 def test_battlefield_scan_command(
     page_range: Annotated[
         str,
