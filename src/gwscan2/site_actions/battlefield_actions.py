@@ -1,6 +1,7 @@
+import asyncio
 from typing import TYPE_CHECKING, TypedDict
 
-from gwscan2.locators import battlefield_players_table
+from gwscan2.locators import BattlefieldLocators as bl, battlefield_players_table
 
 if TYPE_CHECKING:
     import zendriver as zd
@@ -13,6 +14,34 @@ class RowPayload(TypedDict):
     alliance: str
     pop_text: str
     has_pop_cell: bool
+
+
+async def get_battlefield_table(
+    tab: "zd.Tab",
+    timeout: float = 10,
+    settle_attempts: int = 4,
+    settle_delay: float = 0.35,
+) -> list[RowPayload]:
+    loop = asyncio.get_running_loop()
+    start_time = loop.time()
+
+    while loop.time() - start_time < timeout:
+        if await tab.query_selector(bl.PLAYER_LINK):
+            break
+        await tab.sleep(0.25)
+    else:
+        raise asyncio.TimeoutError("Timed out waiting for battlefield player rows")
+
+    for attempt in range(settle_attempts):
+        row_payloads = await extract_battlefield_table(tab)
+        player_rows = [row for row in row_payloads if row["href"]]
+        if player_rows and all(row["has_pop_cell"] for row in player_rows):
+            return row_payloads
+
+        if attempt < settle_attempts - 1:
+            await tab.sleep(settle_delay)
+
+    raise RuntimeError("Battlefield table did not finish loading")
 
 
 async def extract_battlefield_table(tab: "zd.Tab") -> list[RowPayload]:
