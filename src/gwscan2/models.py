@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 
+
 @dataclass
-class RowPayload:
+class PlayerRecord:
+    id: int
     name: str
-    profile_link: str
-    alliance: str
-    pop_text: str
-    has_pop_cell: bool
+    alliance: str | None
+    army_size: int | None
+    army_size_visible: bool

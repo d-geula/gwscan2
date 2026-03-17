@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 from zendriver import cdp
 
 from gwscan2.settings import COMMAND_CENTER_URL, REFERER
-from gwscan2.site_actions.auth import (
+from gwscan2.site_actions.auth_actions import (
     get_auth_state,
     perform_login,
 )
