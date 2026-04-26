@@ -82,11 +82,11 @@ That means each run happens between `:05:15` and `:06:00`.
 
 ### Service file
 
-Create `/etc/systemd/system/gwscan2-auto-login.service`:
+Create `/etc/systemd/system/gw-auto-bank.service`:
 
 ```ini
 [Unit]
-Description=gwscan2 auto login bank deposit test
+Description=auto-banking script for gatewa.rs
 After=network-online.target
 Wants=network-online.target
 
@@ -94,24 +94,24 @@ Wants=network-online.target
 Type=oneshot
 User=dev
 WorkingDirectory=/home/dev/gwscan2
-ExecStart=/usr/local/bin/uv run python experiments/auto_login/login_test.py --headless
+ExecStart=/snap/bin/uv run python experiments/auto_login/login_test.py --headless
 ```
 
 Adjust `User`, `WorkingDirectory`, and `ExecStart` to match the VPS.
 
 ### Timer file
 
-Create `/etc/systemd/system/gwscan2-auto-login.timer`:
+Create `/etc/systemd/system/gw-auto-bank.timer`:
 
 ```ini
 [Unit]
-Description=Run gwscan2 auto login every hour shortly after :05
+Description=Run auto-bank script every hour shortly after :05
 
 [Timer]
 OnCalendar=*-*-* *:05:15
 RandomizedDelaySec=45s
 Persistent=true
-Unit=gwscan2-auto-login.service
+Unit=gw-auto-bank.service
 
 [Install]
 WantedBy=timers.target
@@ -128,43 +128,43 @@ sudo systemctl daemon-reload
 Enable and start the timer:
 
 ```bash
-sudo systemctl enable --now gwscan2-auto-login.timer
+sudo systemctl enable --now gw-auto-bank.timer
 ```
 
 Pause the schedule:
 
 ```bash
-sudo systemctl stop gwscan2-auto-login.timer
+sudo systemctl stop gw-auto-bank.timer
 ```
 
 Resume the schedule:
 
 ```bash
-sudo systemctl start gwscan2-auto-login.timer
+sudo systemctl start gw-auto-bank.timer
 ```
 
 Disable it completely:
 
 ```bash
-sudo systemctl disable --now gwscan2-auto-login.timer
+sudo systemctl disable --now gw-auto-bank.timer
 ```
 
 Run the job once manually:
 
 ```bash
-sudo systemctl start gwscan2-auto-login.service
+sudo systemctl start gw-auto-bank.service
 ```
 
 Inspect timer state:
 
 ```bash
-systemctl list-timers gwscan2-auto-login.timer
+systemctl list-timers gw-auto-bank.timer
 ```
 
 Inspect logs:
 
 ```bash
-journalctl -u gwscan2-auto-login.service -n 200 --no-pager
+journalctl -u gw-auto-bank.service -n 200 --no-pager
 ```
 
 ## Notes
