@@ -94,6 +94,10 @@ Wants=network-online.target
 Type=oneshot
 User=dev
 WorkingDirectory=/home/dev/gwscan2
+Environment=PYTHONUNBUFFERED=1
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=gw-auto-bank
 ExecStart=/snap/bin/uv run python experiments/auto_login/login_test.py --headless
 ```
 
@@ -164,7 +168,8 @@ systemctl list-timers gw-auto-bank.timer
 Inspect logs:
 
 ```bash
-journalctl -u gw-auto-bank.service -n 200 --no-pager
+sudo journalctl -u gw-auto-bank.service -n 200 --no-pager
+sudo journalctl -t gw-auto-bank -n 200 --no-pager
 ```
 
 ## Notes
@@ -172,3 +177,4 @@ journalctl -u gw-auto-bank.service -n 200 --no-pager
 - `Persistent=true` means if the VPS is off during a scheduled time, systemd will run the missed job after boot.
 - If you do not want catch-up behavior after downtime, remove `Persistent=true`.
 - If you prefer cron, you can do it, but systemd is the cleaner operational choice for this case.
+- For system-level services, `journalctl` often needs `sudo` unless your user is in `adm` or `systemd-journal`. That behavior is normal.

@@ -5,7 +5,6 @@ import json
 import os
 from pathlib import Path
 import random
-import traceback
 from typing import Literal
 
 from dotenv import load_dotenv
@@ -41,7 +40,7 @@ async def pause_between_site_actions(
     reason: str, minimum: float = 0.8, maximum: float = 1.8
 ) -> None:
     delay = random.uniform(minimum, maximum)
-    log(f"Pausing {delay:.2f}s before {reason}")
+    log(f"Pause {delay:.2f}s before {reason}")
     await asyncio.sleep(delay)
 
 
@@ -94,35 +93,39 @@ async def get_auth_state(
     raise asyncio.TimeoutError("Timed out determining authentication state")
 
 
-async def capture_page_debug(tab: zd.Tab) -> dict[str, object]:
+async def capture_page_summary(tab: zd.Tab) -> str:
     payload = await tab.evaluate(
         f"""
         (() => {{
             const heading = document.querySelector({json.dumps(COMMAND_CENTER_HEADING)});
-            const loginModal = document.querySelector({json.dumps(LOGIN_MODAL)});
-            const pinInput = document.querySelector({json.dumps(PIN_INPUT)});
             const alert = document.querySelector(".alert, .alert-danger, .alert-warning, .alert-success");
-            const bodyText = (document.body?.innerText || "").replace(/\\s+/g, " ").trim();
 
             return {{
                 url: window.location.href,
                 title: document.title,
                 heading_text: heading ? (heading.textContent || "").trim() : null,
-                login_modal_present: Boolean(loginModal),
-                pin_input_present: Boolean(pinInput),
                 alert_text: alert ? (alert.textContent || "").trim() : null,
-                body_excerpt: bodyText.slice(0, 800),
             }};
         }})()
         """
     )
     if not isinstance(payload, dict):
-        return {"raw": payload}
-    return payload
+        return repr(payload)
+
+    parts = [
+        f"url={payload.get('url')!r}",
+        f"title={payload.get('title')!r}",
+    ]
+    heading_text = payload.get("heading_text")
+    alert_text = payload.get("alert_text")
+    if heading_text:
+        parts.append(f"heading={heading_text!r}")
+    if alert_text:
+        parts.append(f"alert={alert_text!r}")
+    return ", ".join(parts)
 
 
 async def get_captcha_bytes(tab: zd.Tab) -> bytes:
-    log("Extracting captcha image from the page")
     image_b64 = await tab.evaluate(
         f"""
         (() => {{
@@ -146,12 +149,10 @@ async def get_captcha_bytes(tab: zd.Tab) -> bytes:
     )
     if not isinstance(image_b64, str) or not image_b64:
         raise RuntimeError("Failed to extract captcha image data")
-    log(f"Captcha image extracted: {len(image_b64)} base64 chars")
     return base64.b64decode(image_b64)
 
 
 async def ensure_login_modal_open(tab: zd.Tab) -> None:
-    log("Ensuring login modal is open")
     await tab.evaluate(
         f"""
         (() => {{
@@ -177,14 +178,12 @@ async def ensure_login_modal_open(tab: zd.Tab) -> None:
 
 
 async def perform_login(tab: zd.Tab, model: str) -> None:
-    log("Loading credentials from .env")
     username, email, password = load_credentials()
     await ensure_login_modal_open(tab)
 
+    log("Solving PIN captcha")
     pin = solve_pin_image(await get_captcha_bytes(tab), model=model, logger=log)
-    log(f"Predicted PIN: {pin}")
 
-    log("Filling login form")
     await (await tab.select(PIN_INPUT)).send_keys(pin)
     await (await tab.select(USERNAME_INPUT)).send_keys(username)
     await (await tab.select(EMAIL_INPUT)).send_keys(email)
@@ -192,23 +191,20 @@ async def perform_login(tab: zd.Tab, model: str) -> None:
     log("Submitting login form")
     await (await tab.select(SUBMIT_BUTTON)).click()
     await tab.sleep(1.0)
-    page_debug = await capture_page_debug(tab)
-    log(f"Post-submit page debug: {json.dumps(page_debug, ensure_ascii=True)}")
 
 
 async def navigate_to_bank_and_deposit(tab: zd.Tab) -> None:
     await pause_between_site_actions("navigating to the bank page")
-    log(f"Navigating to {BANK_URL}")
+    log("Opening bank page")
     await tab.send(cdp.page.navigate(url=BANK_URL, referrer=COMMAND_CENTER_URL))
     await tab.sleep(1.0)
 
-    log("Waiting for bank deposit input")
     deposit_input = await tab.select(BANK_DEPOSIT_INPUT)
-    deposit_value = deposit_input.get("value")
-    log(f"Deposit input current value: {deposit_value!r}")
+    deposit_value = deposit_input.get("value") or ""
+    log(f"Bank page ready; deposit amount is {deposit_value}")
 
     await pause_between_site_actions("clicking the deposit button")
-    log("Clicking deposit button")
+    log("Submitting deposit")
     await tab.evaluate(
         f"""
         (() => {{
@@ -228,49 +224,43 @@ async def navigate_to_bank_and_deposit(tab: zd.Tab) -> None:
         """
     )
     await tab.sleep(1.0)
-    page_debug = await capture_page_debug(tab)
-    log(f"Post-deposit page debug: {json.dumps(page_debug, ensure_ascii=True)}")
+    log("Deposit submitted")
 
 
 async def run(headless: bool, model: str) -> None:
-    log(f"Starting browser (headless={headless})")
+    log(f"Run started (headless={headless})")
     browser = await start_browser(headless=headless)
     tab: zd.Tab | None = None
     try:
-        log(f"Navigating to {COMMAND_CENTER_URL}")
         tab = await browser.get("about:blank")
         await tab.send(cdp.page.navigate(url=COMMAND_CENTER_URL, referrer=REFERER))
 
         initial_state = await get_auth_state(tab)
-        log(f"Initial auth state: {initial_state}")
         if initial_state == "authenticated":
-            log("Already authenticated")
+            log("Session already authenticated")
         else:
+            log("Login required")
             await perform_login(tab, model=model)
 
-            log("Waiting for authenticated state after login submit")
             final_state = await get_auth_state(tab, timeout=15)
-            log(f"Final auth state: {final_state}")
             if final_state != "authenticated":
                 raise RuntimeError("Login verification failed")
 
             log("Login successful")
 
         await navigate_to_bank_and_deposit(tab)
-        log("Waiting 1 second at the end for visual confirmation")
+        log("Run completed successfully")
         await tab.sleep(1.0)
     except Exception as exc:
-        log(f"Run failed: {exc!r}")
+        log(f"Run failed: {exc}")
         if tab is not None:
             try:
-                page_debug = await capture_page_debug(tab)
-                log(f"Failure page debug: {json.dumps(page_debug, ensure_ascii=True)}")
+                page_summary = await capture_page_summary(tab)
+                log(f"Failure page summary: {page_summary}")
             except Exception as debug_exc:
-                log(f"Failed to capture page debug: {debug_exc!r}")
-        log(traceback.format_exc())
+                log(f"Failure page summary unavailable: {debug_exc}")
         raise
     finally:
-        log("Stopping browser")
         await browser.stop()
 
 

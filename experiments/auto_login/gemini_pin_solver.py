@@ -25,9 +25,6 @@ def solve_pin_image(
     if not api_key:
         raise RuntimeError("Missing required API key in .env: GEMINI_API_KEY")
 
-    logger(f"Sending captcha to Gemini model `{model}` ({len(image_bytes)} bytes)")
-    logger(f"Gemini prompt: {PIN_PROMPT}")
-
     client = genai.Client(api_key=api_key)
     response = client.models.generate_content(
         model=model,
@@ -58,13 +55,10 @@ def solve_pin_image(
         ),
     )
 
-    logger(f"Gemini raw text response: {response.text!r}")
-
     if not response.text:
         raise RuntimeError("Gemini returned an empty response for the captcha")
 
     payload = json.loads(response.text)
-    logger(f"Gemini parsed JSON payload: {payload!r}")
 
     numbers = payload.get("numbers")
     if not isinstance(numbers, list) or len(numbers) != 3:
