@@ -5,13 +5,14 @@ import json
 import os
 from pathlib import Path
 import random
+import sys
 from typing import Literal
 
 from dotenv import load_dotenv
 from zendriver import cdp
 import zendriver as zd
 
-from gemini_pin_solver import solve_pin_image
+from gemini_pin_solver import GeminiPinSolverError, solve_pin_image
 
 
 BASE_URL = "https://main.gatewa.rs"
@@ -283,4 +284,7 @@ def parse_args() -> argparse.Namespace:
 
 if __name__ == "__main__":
     args = parse_args()
-    asyncio.run(run(headless=args.headless, model=args.model))
+    try:
+        asyncio.run(run(headless=args.headless, model=args.model))
+    except GeminiPinSolverError:
+        sys.exit(1)
