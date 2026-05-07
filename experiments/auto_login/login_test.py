@@ -40,7 +40,7 @@ async def pause_between_site_actions(
     reason: str, minimum: float = 0.8, maximum: float = 1.8
 ) -> None:
     delay = random.uniform(minimum, maximum)
-    log(f"Pause {delay:.2f}s before {reason}")
+    # log(f"Pause {delay:.2f}s before {reason}")
     await asyncio.sleep(delay)
 
 
